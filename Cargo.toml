@@ -1,0 +1,52 @@
+[package]
+name = "rust-x-arduino"
+version = "0.1.0"
+authors = ["Gabriel Nilsson <gabriel.nilsson@mindroad.se>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "rust-x-arduino"
+test = false
+bench = false
+
+[dependencies]
+panic-halt = "0.2.0"
+ufmt = "0.2.0"
+nb = "1.1.0"
+embedded-hal = "1.0"
+nostd = { version = "0.1.3", default-features = false }
+
+[dependencies.arduino-hal]
+git = "https://github.com/rahix/avr-hal"
+rev = "3c089795cadbbc7fa83f45958128689fee7ba1e4"
+features = ["arduino-nano"]
+
+# The latest releases of `proc-macro2` do not support the rust toolchain that
+# we use.  Thus, we must fix this dependency to an older version where our
+# toolchain is still supported.  See https://github.com/Rahix/avr-hal/issues/537
+[build-dependencies.proc-macro2]
+version = "=1.0.79"
+
+# Configure the build for minimal size - AVRs have very little program memory
+[profile.dev]
+panic = "abort"
+lto = true
+opt-level = "s"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+debug = true
+lto = true
+opt-level = "s"
+
+# "C:\Users\Gabriel\AppData\Local\Arduino15\packages\arduino\tools\avrdude\6.3.0-arduino17/bin/avrdude" "-CC:\Users\Gabriel\AppData\Local\Arduino15\packages\arduino\tools\avrdude\6.3.0-arduino17/etc/avrdude.conf" -v -V -patmega328p -carduino "-PCOM3" -b57600 -D "-Uflash:w:C:\Users\Gabriel\AppData\Local\arduino\sketches\619A3D52F2A91B5B4088FE3927B4458C/boids.ino.hex:i"
+# "C:\Users\Gabriel\AppData\Local\Arduino15\packages\arduino\tools\avrdude\6.3.0-arduino17/bin/avrdude" "-CC:\Users\Gabriel\AppData\Local\Arduino15\packages\arduino\tools\avrdude\6.3.0-arduino17/etc/avrdude.conf" -v -V -patmega328p -carduino "-PCOM3" -b115200 -D "-Uflash:w:C:\Users\Gabriel\AppData\Local\arduino\sketches\619A3D52F2A91B5B4088FE3927B4458C/boids.ino.hex:i"
+# https://blog.logrocket.com/complete-guide-running-rust-arduino/
+# Also do: scoop bucket add extras; scoop install extras/avrdudess
+# Change avr-specs/avr-atmega328p.json to have "exe-suffix": ".hex",
+# avrdudess is a gui for avrdude. See screenshot in this folder for settings that work for a new bootloader arduino nano
+# Change baud rate to 57600 for old bootloader arduino nano
+
+# Haven't looked at yet: https://www.martyncurrey.com/arduino-nano-as-an-isp-programmer/
