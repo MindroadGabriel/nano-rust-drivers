@@ -1,6 +1,5 @@
 #![allow(unused_variables, dead_code)]
 
-use arduino_hal::port::mode::Output;
 /// BMI160 is a accelerometer from Bosch
 
 use embedded_hal::i2c::I2c;

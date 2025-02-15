@@ -17,6 +17,8 @@ nb = "1.1.0"
 embedded-hal = "1.0"
 embedded-hal-bus = "0.3.0"
 nostd = { version = "0.1.3", default-features = false }
+postcard = "1.1.1"
+serde = { version = "1.0.217", default-features = false, features = ["derive"] }
 
 [dependencies.arduino-hal]
 git = "https://github.com/rahix/avr-hal"
@@ -26,8 +28,6 @@ features = ["arduino-nano"]
 # The latest releases of `proc-macro2` do not support the rust toolchain that
 # we use.  Thus, we must fix this dependency to an older version where our
 # toolchain is still supported.  See https://github.com/Rahix/avr-hal/issues/537
-[build-dependencies.proc-macro2]
-version = "=1.0.79"
 
 # Configure the build for minimal size - AVRs have very little program memory
 [profile.dev]
