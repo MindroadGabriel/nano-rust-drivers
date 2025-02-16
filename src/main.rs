@@ -7,12 +7,12 @@ mod bmi160;
 mod bmi160_registers;
 mod bmi160_error;
 mod protocol;
+mod byte_stuffing;
 
 use panic_halt as _;
 use core::cell::RefCell;
 use arduino_hal::Peripherals;
 use arduino_hal::prelude::*;
-use serde::{Deserialize, Serialize};
 use ufmt::{Formatter, uDisplay, uwrite};
 use protocol::ControllerEvent;
 
@@ -93,7 +93,7 @@ fn main() -> ! {
     let _ = serial.write(0x00);
     let mut send_message = |event: &ControllerEvent| -> Result<(), postcard::Error> {
         let slice = postcard::to_slice(event, &mut message_buffer)?;
-        for byte in corncobs::encode_iter(slice) {
+        for byte in byte_stuffing::encode_iter(slice) {
             serial.write_byte(byte);
         }
         Ok(())

@@ -19,7 +19,6 @@ embedded-hal-bus = "0.3.0"
 nostd = { version = "0.1.3", default-features = false }
 postcard = "1.1.1"
 serde = { version = "1.0.217", default-features = false, features = ["derive"] }
-corncobs = "0.1.3"
 
 [dependencies.arduino-hal]
 git = "https://github.com/rahix/avr-hal"
