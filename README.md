@@ -1,7 +1,7 @@
-rust-x-arduino
+Hackathon Pong - Controller Software
 ==============
 
-Rust project for the _Arduino Nano New Bootloader_.
+Rust project for the _Arduino Nano New Bootloader_, generated from template.
 
 ## Build Instructions
 1. Install prerequisites as described in the [`avr-hal` README] (`avr-gcc`, `avr-libc`, `avrdude`, [`ravedude`]).

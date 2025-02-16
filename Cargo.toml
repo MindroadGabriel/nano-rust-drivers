@@ -1,12 +1,12 @@
 [package]
-name = "rust-x-arduino"
+name = "hackathon-pong-controller"
 version = "0.1.0"
 authors = ["Gabriel Nilsson <gabriel.nilsson@mindroad.se>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [[bin]]
-name = "rust-x-arduino"
+name = "hackathon-pong-controller"
 test = false
 bench = false
 
