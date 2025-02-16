@@ -6,6 +6,7 @@ mod adafruit_ssd1306;
 mod bmi160;
 mod bmi160_registers;
 mod bmi160_error;
+mod protocol;
 
 use panic_halt as _;
 use core::cell::RefCell;
@@ -13,6 +14,7 @@ use arduino_hal::Peripherals;
 use arduino_hal::prelude::*;
 use serde::{Deserialize, Serialize};
 use ufmt::{Formatter, uDisplay, uwrite};
+use protocol::ControllerEvent;
 
 
 fn get_type_name<T>(_: T) -> &'static str {
@@ -73,22 +75,6 @@ impl<I2CError> From<postcard::Error> for UDisplayError<I2CError> {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
-enum ControllerEvent {
-    Connected,
-    HardwareFailure,
-    NewData {
-        x: f32,
-        y: f32,
-        z: f32,
-        temperature: f32,
-    },
-    CalibrationStarted,
-    CalibrationEnded,
-    ButtonOne,
-    ButtonTwo,
-}
-
 #[arduino_hal::entry]
 fn main() -> ! {
     let dp = Peripherals::take().unwrap();
@@ -103,9 +89,11 @@ fn main() -> ! {
         50000,
     );
     let mut message_buffer = [0;32];
+    // Write an initial zero byte to indicate there's a cobs message right away
+    let _ = serial.write(0x00);
     let mut send_message = |event: &ControllerEvent| -> Result<(), postcard::Error> {
-        postcard::to_slice(event, &mut message_buffer)?;
-        for byte in message_buffer {
+        let slice = postcard::to_slice(event, &mut message_buffer)?;
+        for byte in corncobs::encode_iter(slice) {
             serial.write_byte(byte);
         }
         Ok(())
