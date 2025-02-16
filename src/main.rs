@@ -130,7 +130,6 @@ fn main() -> ! {
             button2_last_pressed = button2_pressed;
 
             led.toggle();
-            //arduino_hal::delay_ms(1000);
             accelerometer.update()?;
             if let Some(output_data) = accelerometer.get_output_data() {
                 // let x = (output_data.acceleration.x * 100.0) as i32;
@@ -146,6 +145,7 @@ fn main() -> ! {
                     temperature: output_data.temperature,
                 })?;
             }
+            arduino_hal::delay_ms(10);
         }
     })();
     let _ = send_message(&ControllerEvent::HardwareFailure);
