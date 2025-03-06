@@ -39,8 +39,7 @@ pub fn put_console(console: Console) {
 pub fn get_type_name<T>(_: T) -> &'static str {
     nostd::any::type_name::<T>()
 }
-pub fn print_type_name<S: ufmt::uWrite, T>(_: T)
-    where S: ufmt::uWrite<Error=core::convert::Infallible> {
+pub fn print_type_name<T>(_: T) {
     let type_name = nostd::any::type_name::<T>();
     println!("{}", type_name);
 }

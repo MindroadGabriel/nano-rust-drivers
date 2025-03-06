@@ -1,10 +1,11 @@
 use arduino_hal::prelude::_ufmt_uWrite;
 use ufmt::{Formatter, uDisplay};
-use crate::bmi160_error;
+use crate::{bmi160_error, ssd1306_error};
 
 pub enum UDisplayError<I2CError> {
     HalI2cError(arduino_hal::i2c::Error),
     BMI160Error(bmi160_error::Error<I2CError>),
+    SSD1306Error(ssd1306_error::Error<I2CError>),
     PostcardError(postcard::Error),
 }
 
@@ -24,6 +25,10 @@ impl<I2CError> uDisplay for UDisplayError<I2CError> {
                 f.write_str("BMI160 error: ")?;
                 error.fmt(f)
             }
+            UDisplayError::SSD1306Error(error) => {
+                f.write_str("BMI160 error: ")?;
+                error.fmt(f)
+            }
             UDisplayError::PostcardError(error) => {
                 f.write_str("Postcard serialization error.")
             }
@@ -39,6 +44,11 @@ impl<I2CError> From<arduino_hal::i2c::Error> for UDisplayError<I2CError> {
 impl<I2CError> From<bmi160_error::Error<I2CError>> for UDisplayError<I2CError> {
     fn from(value: bmi160_error::Error<I2CError>) -> Self {
         Self::BMI160Error(value)
+    }
+}
+impl<I2CError> From<ssd1306_error::Error<I2CError>> for UDisplayError<I2CError> {
+    fn from(value: ssd1306_error::Error<I2CError>) -> Self {
+        Self::SSD1306Error(value)
     }
 }
 impl<I2CError> From<postcard::Error> for UDisplayError<I2CError> {
