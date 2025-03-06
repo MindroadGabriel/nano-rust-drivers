@@ -19,6 +19,7 @@ embedded-hal-bus = "0.3.0"
 nostd = { version = "0.1.3", default-features = false }
 postcard = "1.1.1"
 serde = { version = "1.0.217", default-features = false, features = ["derive"] }
+avr-device = "0.7.0"
 
 [dependencies.arduino-hal]
 git = "https://github.com/rahix/avr-hal"
@@ -45,6 +46,14 @@ opt-level = "s"
 # "C:\Users\Gabriel\AppData\Local\Arduino15\packages\arduino\tools\avrdude\6.3.0-arduino17/bin/avrdude" "-CC:\Users\Gabriel\AppData\Local\Arduino15\packages\arduino\tools\avrdude\6.3.0-arduino17/etc/avrdude.conf" -v -V -patmega328p -carduino "-PCOM3" -b57600 -D "-Uflash:w:C:\Users\Gabriel\AppData\Local\arduino\sketches\619A3D52F2A91B5B4088FE3927B4458C/boids.ino.hex:i"
 # "C:\Users\Gabriel\AppData\Local\Arduino15\packages\arduino\tools\avrdude\6.3.0-arduino17/bin/avrdude" "-CC:\Users\Gabriel\AppData\Local\Arduino15\packages\arduino\tools\avrdude\6.3.0-arduino17/etc/avrdude.conf" -v -V -patmega328p -carduino "-PCOM3" -b115200 -D "-Uflash:w:C:\Users\Gabriel\AppData\Local\arduino\sketches\619A3D52F2A91B5B4088FE3927B4458C/boids.ino.hex:i"
 # https://blog.logrocket.com/complete-guide-running-rust-arduino/
+# From article:
+#Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+#Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+#scoop install avr-gcc
+#scoop install avrdude
+#cargo +stable install ravedude
+#cargo install cargo-generate
+#cargo generate --git https://github.com/Rahix/avr-hal-template.git
 # Also do: scoop bucket add extras; scoop install extras/avrdudess
 # Change avr-specs/avr-atmega328p.json to have "exe-suffix": ".hex",
 # avrdudess is a gui for avrdude. See screenshot in this folder for settings that work for a new bootloader arduino nano

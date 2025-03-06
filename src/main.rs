@@ -6,16 +6,48 @@ mod adafruit_ssd1306;
 mod bmi160;
 mod bmi160_registers;
 mod bmi160_error;
-mod protocol;
 mod byte_stuffing;
 
 use panic_halt as _;
-use core::cell::RefCell;
 use arduino_hal::Peripherals;
 use arduino_hal::prelude::*;
 use ufmt::{Formatter, uDisplay, uwrite};
-use protocol::ControllerEvent;
 
+use avr_device::interrupt;
+use core::cell::RefCell;
+type Console = arduino_hal::hal::usart::Usart0<arduino_hal::DefaultClock>;
+static CONSOLE: interrupt::Mutex<RefCell<Option<Console>>> =
+    interrupt::Mutex::new(RefCell::new(None));
+
+macro_rules! print {
+    ($($t:tt)*) => {
+        interrupt::free(
+            |cs| {
+                if let Some(console) = CONSOLE.borrow(cs).borrow_mut().as_mut() {
+                    let _ = ufmt::uwrite!(console, $($t)*);
+                }
+            },
+        )
+    };
+}
+
+macro_rules! println {
+    ($($t:tt)*) => {
+        interrupt::free(
+            |cs| {
+                if let Some(console) = CONSOLE.borrow(cs).borrow_mut().as_mut() {
+                    let _ = ufmt::uwriteln!(console, $($t)*);
+                }
+            }
+        )
+    }
+}
+
+fn put_console(console: Console) {
+    interrupt::free(|cs| {
+        *CONSOLE.borrow(cs).borrow_mut() = Some(console);
+    })
+}
 
 fn get_type_name<T>(_: T) -> &'static str {
     nostd::any::type_name::<T>()
@@ -81,6 +113,8 @@ fn main() -> ! {
     let pins = arduino_hal::pins!(dp);
     // let type_name = get_type_name(&button1);
     let mut serial = arduino_hal::default_serial!(dp, pins, 115200);
+    put_console(serial);
+    println!("Start");
     // uwrite!(serial, "{}", type_name).unwrap_infallible();
     let mut i2c = arduino_hal::I2c::new(
         dp.TWI,
@@ -88,16 +122,10 @@ fn main() -> ! {
         pins.a5.into_pull_up_input(),
         50000,
     );
-    let mut message_buffer = [0;32];
+    // let mut message_buffer = [0;32];
     // Write an initial zero byte to indicate there's a cobs message right away
-    let _ = serial.write(0x00);
-    let mut send_message = |event: &ControllerEvent| -> Result<(), postcard::Error> {
-        let slice = postcard::to_slice(event, &mut message_buffer)?;
-        for byte in byte_stuffing::encode_iter(slice) {
-            serial.write_byte(byte);
-        }
-        Ok(())
-    };
+    // let _ = serial.write(0x00);
+
     let result = (|| -> Result<(), UDisplayError<arduino_hal::i2c::Error>> {
         let mut led = pins.d13.into_output();
         //button1: &avr_hal_generic::port::Pin<avr_hal_generic::port::mode::Input<avr_hal_generic::port::mode::PullUp>, atmega_hal::port::PD5>
@@ -107,24 +135,25 @@ fn main() -> ! {
         let mut button2_last_pressed = button2.is_low();
         let i2c_ref_cell = RefCell::new(i2c);
         let mut accelerometer = bmi160::Driver::new(embedded_hal_bus::i2c::RefCellDevice::new(&i2c_ref_cell), None, None)?;
+        println!("BMI160 initialized");
         // ufmt::uwrite!(&mut serial, "BMI160 initialized\n").unwrap_infallible();
 
         // Print some text
         // ufmt::uwrite!(&mut serial, "Hello from rust arduino!\n").unwrap_infallible();
+        println!("Hello from rust arduino!");
         // print_type_name(&mut serial, &led);
 
         // binary_serde::BinarySerde::binary_serialize(&ControllerEvent::Connected, &mut message_buffer, Endianness::Little)?;
         // serial.bwrite_all(&message_buffer)?;
-        send_message(&ControllerEvent::Connected)?;
 
         loop {
             let button1_pressed = button1.is_low();
             let button2_pressed = button2.is_low();
             if button1_pressed && !button1_last_pressed {
-                send_message(&ControllerEvent::ButtonOne)?;
+                // send_message(&ControllerEvent::ButtonOne)?;
             }
             if button2_pressed && !button2_last_pressed {
-                send_message(&ControllerEvent::ButtonTwo)?;
+                // send_message(&ControllerEvent::ButtonTwo)?;
             }
             button1_last_pressed = button1_pressed;
             button2_last_pressed = button2_pressed;
@@ -138,19 +167,20 @@ fn main() -> ! {
                 // let t = (output_data.temperature * 100.0) as i32;
                 //ufmt::uwrite!(&mut serial, "X: {}, Y: {}, Z: {}, T: {}\n", x, y, z, t).unwrap_infallible();
 
-                send_message(&ControllerEvent::NewData {
-                    x: output_data.acceleration.x,
-                    y: output_data.acceleration.y,
-                    z: output_data.acceleration.z,
-                    temperature: output_data.temperature,
-                })?;
+                // send_message(&ControllerEvent::NewData {
+                //     x: output_data.acceleration.x,
+                //     y: output_data.acceleration.y,
+                //     z: output_data.acceleration.z,
+                //     temperature: output_data.temperature,
+                // })?;
             }
             arduino_hal::delay_ms(10);
         }
     })();
-    let _ = send_message(&ControllerEvent::HardwareFailure);
+    // let _ = send_message(&ControllerEvent::HardwareFailure);
     if let Err(error) = result {
-        ufmt::uwrite!(&mut serial, "Error: {}\n", error).unwrap_infallible();
+        println!("Error: {}", error);
+        // ufmt::uwrite!(&mut serial, "Error: {}\n", error).unwrap_infallible();
     }
     loop {}
 }
