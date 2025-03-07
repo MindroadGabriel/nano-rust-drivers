@@ -90,7 +90,11 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
 
     pub fn dim(&self, dim: bool) {}
 
-    pub fn draw_pixel(&self, x: i16, y: i16, color: u16) {}
+    pub fn draw_pixel(&mut self, x: u16, y: u16, color: u8) {
+        let byte = 1 << (y % 8);
+        let byte_index = (LCDHEIGHT / 8) * x + (y / 8);
+        self.buffer[byte_index as usize] |= byte;
+    }
 
     pub fn draw_fast_h_line(&self, x: i16, y: i16, w: i16, color: u16) {}
     pub fn draw_fast_v_line(&self, x: i16, y: i16, h: i16, color: u16) {}

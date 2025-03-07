@@ -18,6 +18,7 @@ use panic_halt as _;
 use arduino_hal::Peripherals;
 use arduino_hal::prelude::*;
 use crate::ssd1306::BUFFER_SIZE;
+use crate::ssd1306_registers::WHITE;
 
 #[arduino_hal::entry]
 fn main() -> ! {
@@ -95,15 +96,13 @@ fn main() -> ! {
         // }
         loop {
             display.fill_screen(ssd1306_registers::BLACK);
-            display.display()?;
-            arduino_hal::delay_ms(1000);
-            display.fill_screen(ssd1306_registers::WHITE);
-            // display.display()?;
-            // display.fill_screen_byte(0x0F);
-            for i in 0..=BUFFER_SIZE {
-                arduino_hal::delay_ms(20);
-                display.display_num(i)?;
+            for i in 0..32 {
+                display.draw_pixel(i, i, WHITE);
             }
+            for i in 0..32 {
+                display.draw_pixel(31 + i, 31, WHITE);
+            }
+            display.display()?;
             arduino_hal::delay_ms(1000);
         }
     })();
