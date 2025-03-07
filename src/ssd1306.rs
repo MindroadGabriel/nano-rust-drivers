@@ -1,5 +1,6 @@
 #![allow(unused_variables, dead_code)]
 
+use core::mem::swap;
 use embedded_hal::i2c::{I2c, Operation};
 use crate::ssd1306_error::Error;
 use crate::ssd1306_registers::*;
@@ -49,7 +50,6 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         })
     }
 
-    pub fn begin(&mut self, reset: bool, periph_begin: bool) {}
     pub fn start_of_data(&mut self) -> Result<(), Error<I2C::Error>> {
         // self.i2c.write(self.address, &[PAGEADDR, 0, (LCDHEIGHT/2 - 1).try_into().unwrap(), COLUMNADDR, 0, (LCDWIDTH - 1).try_into().unwrap()])?;
         let last_x_pixel_index: u8 = ((LCDWIDTH - 1) as u8);
@@ -84,11 +84,27 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         Ok(())
     }
 
-    pub fn clear_display(&self) {}
+    pub fn clear_display(&mut self) {
+        self.fill_screen(WHITE);
+    }
 
-    pub fn invert_display(&self, i: bool) {}
+    pub fn invert_display(&mut self, inverted: bool) -> Result<(), Error<I2C::Error>> {
+        if inverted {
+            self.i2c.write(self.address, &[0x00, INVERTDISPLAY])?;
+        } else {
+            self.i2c.write(self.address, &[0x00, NORMALDISPLAY])?;
+        }
+        Ok(())
+    }
 
-    pub fn dim(&self, dim: bool) {}
+    pub fn dim(&mut self, dim: bool) -> Result<(), Error<I2C::Error>> {
+        if dim {
+            self.i2c.write(self.address, &[0x00, SETCONTRAST, 0x0])?;
+        } else {
+            self.i2c.write(self.address, &[0x00, SETCONTRAST, 0x8F])?;
+        }
+        Ok(())
+    }
 
     pub fn draw_pixel(&mut self, x: u16, y: u16, color: u8) {
         let byte = 1 << (y % 8);
@@ -96,23 +112,57 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         self.buffer[byte_index as usize] |= byte;
     }
 
-    pub fn draw_fast_h_line(&self, x: i16, y: i16, w: i16, color: u16) {}
-    pub fn draw_fast_v_line(&self, x: i16, y: i16, h: i16, color: u16) {}
     pub fn start_scroll_right(&self, start: u8, stop: u8) {}
     pub fn start_scroll_left(&self, start: u8, stop: u8) {}
     pub fn start_scroll_diag_right(&self, start: u8, stop: u8) {}
     pub fn start_scroll_diag_left(&self, start: u8, stop: u8) {}
     pub fn stop_scroll(&self) {}
-    pub fn ssd1306_command(&self, c: u8) {}
+    pub fn ssd1306_command(&mut self, command: &[u8]) -> Result<(), Error<I2C::Error>> {
+        self.i2c.transaction(self.address, &mut [Operation::Write(&[0x00]), Operation::Write(command)])?;
+        Ok(())
+    }
     // pub fn get_pixel(&self, x: i16, y: i16) -> bool {
     //
     // }
     // pub fn get_buffer(&mut self) -> &[u8] {
     //
     // }
-    pub fn start_write() {}
-    pub fn write_line(x0: u16, y0: u16, x1: i16, y1: i16, color: u16) {}
-    pub fn end_write() {}
+    pub fn draw_line(&mut self, x0: u16, y0: u16, x1: u16, y1: u16, color: u8) {
+        let mut x0 = x0 as i16;
+        let mut y0 = y0 as i16;
+        let mut x1 = x1 as i16;
+        let mut y1 = y1 as i16;
+        let steep = (y1 as i16 - y0 as i16).abs() > (x1 as i16 - x0 as i16).abs();
+        if steep {
+            swap(&mut x0, &mut y0);
+            swap(&mut x1, &mut y1);
+        }
+        if x0 > x1 {
+            swap(&mut x0, &mut x1);
+            swap(&mut y0, &mut y1);
+        }
+
+        let dx = x1 - x0;
+        let dy = (y1 as i16 - y0 as i16).abs();
+        let mut err = dx / 2;
+        let y_step: i16 = if y0 < y1 { 1 } else { -1 };
+
+        let mut x_runner = x0;
+        let mut y_runner = y0;
+        while x_runner <= x1 {
+            if steep {
+                self.draw_pixel(y_runner as u16, x_runner as u16, color);
+            } else {
+                self.draw_pixel(x_runner as u16, y_runner as u16, color);
+            }
+            err -= dy;
+            if err < 0 {
+                y_runner += y_step;
+                err += dx;
+            }
+            x_runner += 1;
+        }
+    }
     pub fn set_rotation(r: u8) {}
     // pub fn invert_display(i: bool) {
     //
@@ -134,7 +184,6 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
             self.buffer[i] = byte;
         }
     }
-    pub fn draw_line(x0: i16, y0: i16, x1: i16, y1: i16, color: u16) {}
     pub fn draw_rect(x: i16, y: i16, w: i16, h: i16, color: u16) {}
     pub fn draw_circle(x0: i16, y0: i16, r: i16, color: u16) {}
     pub fn draw_circle_helper(x0: i16, y0: i16, r: i16, corner_name: u8, color: u16) {}

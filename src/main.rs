@@ -102,7 +102,17 @@ fn main() -> ! {
             for i in 0..32 {
                 display.draw_pixel(31 + i, 31, WHITE);
             }
+            for i in 0..32 {
+                display.draw_pixel(63 + i, 31 - i, WHITE);
+            }
+            for i in 0..32 {
+                display.draw_pixel(95 + i, 0, WHITE);
+            }
+            display.draw_line(4, 4, 57, 25, WHITE);
             display.display()?;
+            display.dim(true)?;
+            arduino_hal::delay_ms(1000);
+            display.dim(false)?;
             arduino_hal::delay_ms(1000);
         }
     })();
