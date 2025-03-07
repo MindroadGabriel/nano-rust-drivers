@@ -1,9 +1,9 @@
 #![allow(unused_variables, dead_code)]
-use embedded_hal::i2c::I2c;
+use embedded_hal::i2c::{I2c, Operation};
 use crate::ssd1306_error::Error;
 use crate::ssd1306_registers::*;
 
-const DEFAULT_ADDRESS: u8 = 0x15;
+const DEFAULT_ADDRESS: u8 = 0x3C;
 const TEMP_REGISTER: u8 = 0x15;
 pub const BUFFER_SIZE: usize = LCDWIDTH as usize * ((LCDHEIGHT as usize + 7) / 8);
 
@@ -16,9 +16,32 @@ pub struct DisplayDriver<'buffer, I2C> {
 impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
     pub fn new(mut i2c: I2C, address: Option<u8>, buffer: &'buffer mut [u8; BUFFER_SIZE]) -> Result<Self, Error<I2C::Error>> {
         let address = address.unwrap_or(DEFAULT_ADDRESS);
-        i2c.write(address, &[0xE3])?;
-        // i2c.write(address, &[DISPLAYOFF, SETDISPLAYCLOCKDIV, 0x80, SETMULTIPLEX])?;
-        // bmi160_error.rsi2c.write(address, &[])
+        // i2c.write(address, &[0xE3])?;
+        let vcc_state = SWITCHCAPVCC;
+        i2c.write(address, &[0x00, DISPLAYOFF, SETDISPLAYCLOCKDIV, 0x80, SETMULTIPLEX])?;
+        i2c.write(address, &[0x00, (LCDHEIGHT - 1).try_into().unwrap()])?;
+        i2c.write(address, &[0x00, SETDISPLAYOFFSET, 0x00, SETSTARTLINE | 0x00, CHARGEPUMP])?;
+        if vcc_state == EXTERNALVCC {
+            i2c.write(address, &[0x00, 0x10])?;
+        } else {
+            i2c.write(address, &[0x00, 0x14])?;
+        }
+        i2c.write(address, &[0x00, MEMORYMODE, 0x00, SEGREMAP, COMSCANDEC])?;
+
+        let com_pins = 0x02;
+        let contrast = 0x8F;
+        i2c.write(address, &[0x00, SETCOMPINS])?;
+        i2c.write(address, &[0x00, com_pins])?;
+        i2c.write(address, &[0x00, SETCONTRAST])?;
+        i2c.write(address, &[0x00, contrast])?;
+        i2c.write(address, &[0x00, SETPRECHARGE])?;
+        if vcc_state == EXTERNALVCC {
+            i2c.write(address, &[0x00, 0x22])?;
+        } else {
+            i2c.write(address, &[0x00, 0xF1])?;
+        }
+        i2c.write(address, &[0x00, SETVCOMDETECT, 0x40, DISPLAYALLON_RESUME, NORMALDISPLAY,DEACTIVATE_SCROLL, DISPLAYON])?;
+
         Ok(Self {
             i2c,
             address,
@@ -30,8 +53,16 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
 
     }
 
-    pub fn display(&self) {
+    pub fn display(&mut self) -> Result<(), Error<I2C::Error>>{
+        self.i2c.write(self.address, &[0x00, PAGEADDR, 0, 0xFF, COLUMNADDR, 0])?;
+        self.i2c.write(self.address, &[0x00, (LCDWIDTH - 1).try_into().unwrap()])?;
 
+        // self.i2c.write(self.address, &subset)?;
+        self.i2c.transaction(self.address, &mut [
+            Operation::Write(&mut [0x40]),
+            Operation::Write(self.buffer),
+        ])?;
+        Ok(())
     }
 
     pub fn clear_display(&self) {

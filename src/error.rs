@@ -9,7 +9,8 @@ pub enum UDisplayError<I2CError> {
     PostcardError(postcard::Error),
 }
 
-impl<I2CError> uDisplay for UDisplayError<I2CError> {
+impl<I2CError> uDisplay for UDisplayError<I2CError>
+    where I2CError: embedded_hal::i2c::Error {
     fn fmt<W>(&self, f: &mut Formatter<'_, W>) -> Result<(), W::Error> where W: _ufmt_uWrite + ?Sized {
         match self {
             UDisplayError::HalI2cError(error) => {

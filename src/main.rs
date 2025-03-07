@@ -41,12 +41,22 @@ fn main() -> ! {
         let mut accelerometer = bmi160::Driver::new(embedded_hal_bus::i2c::RefCellDevice::new(&i2c_ref_cell), None, None)?;
         let mut buffer = [0x00; ssd1306::BUFFER_SIZE];
         let display_result = ssd1306::DisplayDriver::new(embedded_hal_bus::i2c::RefCellDevice::new(&i2c_ref_cell), None, &mut buffer);
+        print::print_type_name(&display_result);
+        //
+        // core::result::Result<
+        // hackathon_pong_controller::ssd1306::DisplayDriver<embedded_hal_bus::i2c::refcell::RefCellDevice<avr_hal_generic::i2c::I2c<atmega_hal::Atmega,
+        // avr_device::devices::atmega328p::TWI,
+        // avr_hal_generic::port::Pin<avr_hal_generic::port::mode::Input,
+        // atmega_hal::port::PC4>,
+        // avr_hal_generic::port::Pin<avr_hal_generic::port::mode::Input,
+        // atmega_hal::port::PC5>,
+        // avr_hal_generic::clock::MHz16>>>,
+        // hackathon_pong_controller::ssd1306_error::Error<avr_hal_generic::i2c::Error>>
         let mut display = match display_result {
             Ok(display) => {
                 display
             }
             Err(error) => {
-                print::print_type_name(&error);
                 return Err(error.into())
             }
         };
