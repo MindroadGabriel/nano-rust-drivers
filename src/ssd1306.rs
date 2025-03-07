@@ -1,4 +1,5 @@
 #![allow(unused_variables, dead_code)]
+
 use embedded_hal::i2c::{I2c, Operation};
 use crate::ssd1306_error::Error;
 use crate::ssd1306_registers::*;
@@ -18,15 +19,14 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         let address = address.unwrap_or(DEFAULT_ADDRESS);
         // i2c.write(address, &[0xE3])?;
         let vcc_state = SWITCHCAPVCC;
-        i2c.write(address, &[0x00, DISPLAYOFF, SETDISPLAYCLOCKDIV, 0x80, SETMULTIPLEX])?;
-        i2c.write(address, &[0x00, (LCDHEIGHT - 1).try_into().unwrap()])?;
+        i2c.write(address, &[0x00, DISPLAYOFF, SETDISPLAYCLOCKDIV, 0x80, SETMULTIPLEX, (LCDHEIGHT - 1).try_into().unwrap()])?;
         i2c.write(address, &[0x00, SETDISPLAYOFFSET, 0x00, SETSTARTLINE | 0x00, CHARGEPUMP])?;
         if vcc_state == EXTERNALVCC {
             i2c.write(address, &[0x00, 0x10])?;
         } else {
             i2c.write(address, &[0x00, 0x14])?;
         }
-        i2c.write(address, &[0x00, MEMORYMODE, 0x00, SEGREMAP, COMSCANDEC])?;
+        i2c.write(address, &[0x00, MEMORYMODE, 0x01, 0xA1, 0xC8])?;
 
         let com_pins = 0x02;
         let contrast = 0x8F;
@@ -40,7 +40,7 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         } else {
             i2c.write(address, &[0x00, 0xF1])?;
         }
-        i2c.write(address, &[0x00, SETVCOMDETECT, 0x40, DISPLAYALLON_RESUME, NORMALDISPLAY,DEACTIVATE_SCROLL, DISPLAYON])?;
+        i2c.write(address, &[0x00, SETVCOMDETECT, 0x40, DISPLAYALLON_RESUME, NORMALDISPLAY, DEACTIVATE_SCROLL, DISPLAYON])?;
 
         Ok(Self {
             i2c,
@@ -49,13 +49,19 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         })
     }
 
-    pub fn begin(&mut self, reset: bool, periph_begin: bool) {
-
+    pub fn begin(&mut self, reset: bool, periph_begin: bool) {}
+    pub fn start_of_data(&mut self) -> Result<(), Error<I2C::Error>> {
+        // self.i2c.write(self.address, &[PAGEADDR, 0, (LCDHEIGHT/2 - 1).try_into().unwrap(), COLUMNADDR, 0, (LCDWIDTH - 1).try_into().unwrap()])?;
+        let last_x_pixel_index: u8 = ((LCDWIDTH - 1) as u8);
+        let last_y_byte_index: u8 = ((LCDHEIGHT / 8) - 1) as u8;
+        self.i2c.write(self.address, &[0x00, COLUMNADDR, 0x00, last_x_pixel_index, PAGEADDR, 0x00, last_y_byte_index])?;
+        Ok(())
     }
 
-    pub fn display(&mut self) -> Result<(), Error<I2C::Error>>{
-        self.i2c.write(self.address, &[0x00, PAGEADDR, 0, 0xFF, COLUMNADDR, 0])?;
-        self.i2c.write(self.address, &[0x00, (LCDWIDTH - 1).try_into().unwrap()])?;
+    pub fn display(&mut self) -> Result<(), Error<I2C::Error>> {
+        self.start_of_data()?;
+        // self.i2c.write(self.address, &[0x00, PAGEADDR, 0, 0xFF, COLUMNADDR, 0])?;
+        // self.i2c.write(self.address, &[0x00, (LCDWIDTH - 1).try_into().unwrap()])?;
 
         // self.i2c.write(self.address, &subset)?;
         self.i2c.transaction(self.address, &mut [
@@ -65,70 +71,49 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         Ok(())
     }
 
-    pub fn clear_display(&self) {
+    pub fn display_num(&mut self, num: usize) -> Result<(), Error<I2C::Error>> {
+        self.start_of_data()?;
+        // self.i2c.write(self.address, &[0x00, PAGEADDR, 0, (LCDHEIGHT - 1).try_into().unwrap(), COLUMNADDR, 0, (LCDWIDTH - 1).try_into().unwrap()])?;
+        // self.i2c.write(self.address, &[0x00, (LCDWIDTH - 1).try_into().unwrap()])?;
 
+        // self.i2c.write(self.address, &subset)?;
+        self.i2c.transaction(self.address, &mut [
+            Operation::Write(&mut [0x40]),
+            Operation::Write(&self.buffer[..num]),
+        ])?;
+        Ok(())
     }
 
-    pub fn invert_display(&self, i: bool) {
+    pub fn clear_display(&self) {}
 
-    }
+    pub fn invert_display(&self, i: bool) {}
 
-    pub fn dim(&self, dim: bool) {
+    pub fn dim(&self, dim: bool) {}
 
-    }
+    pub fn draw_pixel(&self, x: i16, y: i16, color: u16) {}
 
-    pub fn draw_pixel(&self, x: i16, y: i16, color: u16) {
-
-    }
-
-    pub fn draw_fast_h_line(&self, x: i16, y: i16, w: i16, color: u16) {
-
-    }
-    pub fn draw_fast_v_line(&self, x: i16, y: i16, h: i16, color: u16) {
-
-    }
-    pub fn start_scroll_right(&self, start: u8, stop: u8) {
-
-    }
-    pub fn start_scroll_left(&self, start: u8, stop: u8) {
-
-    }
-    pub fn start_scroll_diag_right(&self, start: u8, stop: u8) {
-
-    }
-    pub fn start_scroll_diag_left(&self, start: u8, stop: u8) {
-
-    }
-    pub fn stop_scroll(&self) {
-
-    }
-    pub fn ssd1306_command(&self, c: u8) {
-
-    }
+    pub fn draw_fast_h_line(&self, x: i16, y: i16, w: i16, color: u16) {}
+    pub fn draw_fast_v_line(&self, x: i16, y: i16, h: i16, color: u16) {}
+    pub fn start_scroll_right(&self, start: u8, stop: u8) {}
+    pub fn start_scroll_left(&self, start: u8, stop: u8) {}
+    pub fn start_scroll_diag_right(&self, start: u8, stop: u8) {}
+    pub fn start_scroll_diag_left(&self, start: u8, stop: u8) {}
+    pub fn stop_scroll(&self) {}
+    pub fn ssd1306_command(&self, c: u8) {}
     // pub fn get_pixel(&self, x: i16, y: i16) -> bool {
     //
     // }
     // pub fn get_buffer(&mut self) -> &[u8] {
     //
     // }
-    pub fn start_write() {
-
-    }
-    pub fn write_line(x0: u16, y0: u16, x1: i16, y1: i16, color: u16) {
-
-    }
-    pub fn end_write() {
-
-    }
-    pub fn set_rotation(r: u8) {
-
-    }
+    pub fn start_write() {}
+    pub fn write_line(x0: u16, y0: u16, x1: i16, y1: i16, color: u16) {}
+    pub fn end_write() {}
+    pub fn set_rotation(r: u8) {}
     // pub fn invert_display(i: bool) {
     //
     // }
-    pub fn fill_rect(x: i16, y: i16, w: i16, h: i16, color: u16) {
-
-    }
+    pub fn fill_rect(x: i16, y: i16, w: i16, h: i16, color: u16) {}
     pub fn fill_screen(&mut self, color: u8) {
         if color != 0 {
             for i in 0..BUFFER_SIZE {
@@ -140,24 +125,17 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
             }
         }
     }
-    pub fn draw_line(x0: i16, y0: i16, x1: i16, y1: i16, color: u16) {
-
+    pub fn fill_screen_byte(&mut self, byte: u8) {
+        for i in 0..BUFFER_SIZE {
+            self.buffer[i] = byte;
+        }
     }
-    pub fn draw_rect(x: i16, y: i16, w: i16, h: i16, color: u16) {
-
-    }
-    pub fn draw_circle(x0: i16, y0: i16, r: i16, color: u16) {
-
-    }
-    pub fn draw_circle_helper(x0: i16, y0: i16, r: i16, corner_name: u8, color: u16) {
-
-    }
-    pub fn fill_circle(x0: i16, y0: i16, r: i16, color: u16) {
-
-    }
-    pub fn fill_circle_helper(x0: i16, y0: i16, r: i16, corner_name: u8, color: u16) {
-
-    }
+    pub fn draw_line(x0: i16, y0: i16, x1: i16, y1: i16, color: u16) {}
+    pub fn draw_rect(x: i16, y: i16, w: i16, h: i16, color: u16) {}
+    pub fn draw_circle(x0: i16, y0: i16, r: i16, color: u16) {}
+    pub fn draw_circle_helper(x0: i16, y0: i16, r: i16, corner_name: u8, color: u16) {}
+    pub fn fill_circle(x0: i16, y0: i16, r: i16, color: u16) {}
+    pub fn fill_circle_helper(x0: i16, y0: i16, r: i16, corner_name: u8, color: u16) {}
 
 
     pub fn read(&mut self) -> Result<u8, I2C::Error> {

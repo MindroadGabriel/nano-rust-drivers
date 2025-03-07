@@ -17,6 +17,7 @@ use core::cell::RefCell;
 use panic_halt as _;
 use arduino_hal::Peripherals;
 use arduino_hal::prelude::*;
+use crate::ssd1306::BUFFER_SIZE;
 
 #[arduino_hal::entry]
 fn main() -> ! {
@@ -57,40 +58,53 @@ fn main() -> ! {
                 display
             }
             Err(error) => {
-                return Err(error.into())
+                return Err(error.into());
             }
         };
 
         println!("BMI160 initialized");
         println!("Hello from rust arduino!");
 
+        // loop {
+        //     // let button1_pressed = button1.is_low();
+        //     // let button2_pressed = button2.is_low();
+        //     // if button1_pressed && !button1_last_pressed {
+        //     //     println!("Button1 pressed");
+        //     // }
+        //     // if button2_pressed && !button2_last_pressed {
+        //     //     println!("Button2 pressed");
+        //     // }
+        //     // button1_last_pressed = button1_pressed;
+        //     // button2_last_pressed = button2_pressed;
+        //     //
+        //     // led.toggle();
+        //     // accelerometer.update()?;
+        //     // if let Some(output_data) = accelerometer.get_output_data() {
+        //     // }
+        //     println!("On");
+        //     display.fill_screen(ssd1306_registers::WHITE);
+        //     display.display()?;
+        //     led.set_high();
+        //     arduino_hal::delay_ms(2000);
+        //
+        //     println!("Off");
+        //     display.fill_screen(ssd1306_registers::BLACK);
+        //     display.display()?;
+        //     led.set_low();
+        //     arduino_hal::delay_ms(2000);
+        // }
         loop {
-            // let button1_pressed = button1.is_low();
-            // let button2_pressed = button2.is_low();
-            // if button1_pressed && !button1_last_pressed {
-            //     println!("Button1 pressed");
-            // }
-            // if button2_pressed && !button2_last_pressed {
-            //     println!("Button2 pressed");
-            // }
-            // button1_last_pressed = button1_pressed;
-            // button2_last_pressed = button2_pressed;
-            //
-            // led.toggle();
-            // accelerometer.update()?;
-            // if let Some(output_data) = accelerometer.get_output_data() {
-            // }
-            println!("On");
-            display.fill_screen(ssd1306_registers::WHITE);
-            display.display();
-            led.set_high();
-            arduino_hal::delay_ms(2000);
-
-            println!("Off");
             display.fill_screen(ssd1306_registers::BLACK);
-            display.display();
-            led.set_low();
-            arduino_hal::delay_ms(2000);
+            display.display()?;
+            arduino_hal::delay_ms(1000);
+            display.fill_screen(ssd1306_registers::WHITE);
+            // display.display()?;
+            // display.fill_screen_byte(0x0F);
+            for i in 0..=BUFFER_SIZE {
+                arduino_hal::delay_ms(20);
+                display.display_num(i)?;
+            }
+            arduino_hal::delay_ms(1000);
         }
     })();
     if let Err(error) = result {
