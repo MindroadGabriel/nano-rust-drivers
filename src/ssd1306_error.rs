@@ -4,6 +4,10 @@ use ufmt::{Formatter, uWrite};
 pub enum Error<I2CError> {
     WrongChipId(u8),
     I2cError(I2CError),
+    OutsideScreenAccess {
+        x: i16,
+        y: i16,
+    },
 }
 
 impl<I2CError> From<I2CError> for Error<I2CError>
@@ -12,6 +16,7 @@ impl<I2CError> From<I2CError> for Error<I2CError>
         Self::I2cError(value)
     }
 }
+
 impl<I2CError> ufmt::uDisplay for Error<I2CError>
     where I2CError: embedded_hal::i2c::Error {
     fn fmt<W>(&self, fmt: &mut Formatter<'_, W>) -> Result<(), <W as uWrite>::Error> where W: uWrite + ?Sized {
@@ -52,6 +57,12 @@ impl<I2CError> ufmt::uDisplay for Error<I2CError>
                         fmt.write_str("unknown")
                     }
                 }
+            }
+            Error::OutsideScreenAccess { x, y } => {
+                fmt.write_str("oob: ")?;
+                x.fmt(fmt)?;
+                fmt.write_str(", ")?;
+                y.fmt(fmt)
             }
         }
     }

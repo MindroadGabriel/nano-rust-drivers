@@ -115,10 +115,21 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         Ok(())
     }
 
-    pub fn draw_pixel(&mut self, x: u16, y: u16, color: u8) {
+    pub fn draw_pixel(&mut self, x: u16, y: u16, color: u8) -> Result<(), Error<I2C::Error>> {
+        if x > LCDWIDTH || y > LCDHEIGHT {
+            return Err(Error::OutsideScreenAccess { x: x as i16, y: y as i16 });
+        }
         let byte = 1 << (y % 8);
         let byte_index = (LCDHEIGHT / 8) * x + (y / 8);
-        self.buffer[byte_index as usize] |= byte;
+        if let Some(view) = self.buffer.get_mut(byte_index as usize) {
+            *view = *view | byte;
+            Ok(())
+        } else {
+            Err(Error::OutsideScreenAccess {
+                x: x as i16,
+                y: y as i16,
+            })
+        }
     }
 
     pub fn start_scroll_right(&self, start: u8, stop: u8) {}
@@ -136,7 +147,7 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
     // pub fn get_buffer(&mut self) -> &[u8] {
     //
     // }
-    pub fn draw_line(&mut self, x0: u16, y0: u16, x1: u16, y1: u16, color: u8) {
+    pub fn draw_line(&mut self, x0: u16, y0: u16, x1: u16, y1: u16, color: u8) -> Result<(), Error<I2C::Error>> {
         let mut x0 = x0 as i16;
         let mut y0 = y0 as i16;
         let mut x1 = x1 as i16;
@@ -160,9 +171,9 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         let mut y_runner = y0;
         while x_runner <= x1 {
             if steep {
-                self.draw_pixel(y_runner as u16, x_runner as u16, color);
+                self.draw_pixel(y_runner as u16, x_runner as u16, color)?;
             } else {
-                self.draw_pixel(x_runner as u16, y_runner as u16, color);
+                self.draw_pixel(x_runner as u16, y_runner as u16, color)?;
             }
             err -= dy;
             if err < 0 {
@@ -171,12 +182,32 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
             }
             x_runner += 1;
         }
+        Ok(())
     }
-    pub fn set_rotation(r: u8) {}
-    // pub fn invert_display(i: bool) {
-    //
-    // }
-    pub fn fill_rect(x: i16, y: i16, w: i16, h: i16, color: u16) {}
+    pub fn draw_fast_h_line(&mut self, x: u16, y: u16, w: u16, color: u8) -> Result<(), Error<I2C::Error>> {
+        if x >= LCDWIDTH || y >= LCDHEIGHT {
+            return Err(Error::OutsideScreenAccess { x: x as i16, y: y as i16 });
+        } else if x + w >= LCDWIDTH {
+            return Err(Error::OutsideScreenAccess { x: (x + w) as i16, y: y as i16 });
+        }
+        // A faster implementation can be added here
+        self.draw_line(x, y, x + w, y, color)
+    }
+    pub fn draw_fast_v_line(&mut self, x: u16, y: u16, h: u16, color: u8) -> Result<(), Error<I2C::Error>> {
+        if x >= LCDWIDTH || y >= LCDHEIGHT {
+            return Err(Error::OutsideScreenAccess { x: x as i16, y: y as i16 });
+        } else if y + h >= LCDHEIGHT {
+            return Err(Error::OutsideScreenAccess { x: x as i16, y: (y + h) as i16 });
+        }
+        // A faster implementation can be added here
+        self.draw_line(x, y, x, y + h, color)
+    }
+    pub fn draw_fill_rect(&mut self, x: u16, y: u16, w: u16, h: u16, color: u8) -> Result<(), Error<I2C::Error>> {
+        for i in x..x + w {
+            self.draw_fast_v_line(i, y, h, color)?
+        }
+        Ok(())
+    }
     pub fn fill_screen(&mut self, color: u8) {
         if color != 0 {
             for i in 0..BUFFER_SIZE {

@@ -64,8 +64,8 @@ fn main() -> ! {
             }
         };
 
-        println!("BMI160 initialized");
-        println!("Hello from rust arduino!");
+        // println!("BMI160 initialized");
+        println!("Started");
 
         // loop {
         //     // let button1_pressed = button1.is_low();
@@ -98,18 +98,32 @@ fn main() -> ! {
         loop {
             display.fill_screen(ssd1306_registers::BLACK);
             for i in 0..32 {
-                display.draw_pixel(i, i, WHITE);
+                display.draw_pixel(i, i, WHITE)?;
             }
             for i in 0..32 {
-                display.draw_pixel(31 + i, 31, WHITE);
+                display.draw_pixel(31 + i, 31, WHITE)?;
             }
             for i in 0..32 {
-                display.draw_pixel(63 + i, 31 - i, WHITE);
+                display.draw_pixel(63 + i, 31 - i, WHITE)?;
             }
             for i in 0..32 {
-                display.draw_pixel(95 + i, 0, WHITE);
+                display.draw_pixel(95 + i, 0, WHITE)?;
             }
-            display.draw_line(4, 4, 57, 25, WHITE);
+            display.display()?;
+            arduino_hal::delay_ms(1000);
+            display.draw_line(4, 4, 57, 25, WHITE)?;
+            display.display()?;
+            arduino_hal::delay_ms(1000);
+            display.draw_line(57, 4, 4, 25, WHITE)?;
+            display.display()?;
+            arduino_hal::delay_ms(1000);
+            display.draw_line(97, 15, 44, 30, WHITE)?;
+            display.display()?;
+            arduino_hal::delay_ms(1000);
+            display.draw_line(44, 15, 97, 30, WHITE)?;
+            display.display()?;
+            arduino_hal::delay_ms(1000);
+            display.draw_fill_rect(4, 4, 57 - 4, 25 - 4, WHITE)?;
             display.display()?;
             // display.dim(true)?;
             arduino_hal::delay_ms(1000);
@@ -118,7 +132,7 @@ fn main() -> ! {
 
             display.clear_display();
             display.set_cursor(0, 0);
-            display.draw_string("You're a mean one,\nMister Grinch!");
+            // display.draw_string("You're a mean one,\nMister Grinch!");
             display.draw_string(" Abc");
             display.display()?;
             arduino_hal::delay_ms(2000);
