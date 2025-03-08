@@ -18,7 +18,7 @@ macro_rules! print {
 }
 
 #[allow(unused_macros)]
-macro_rules! println {
+#[macro_export] macro_rules! println {
     ($($t:tt)*) => {
         avr_device::interrupt::free(
             |cs| {

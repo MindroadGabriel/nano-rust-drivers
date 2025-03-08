@@ -1,8 +1,11 @@
 #![allow(unused_variables, dead_code)]
 
 use core::mem::swap;
+use codepage_437::CP437_CONTROL;
 use embedded_hal::i2c::{I2c, Operation};
+use crate::println;
 use crate::ssd1306_error::Error;
+use crate::ssd1306_font::{FONT, FONT_HEIGHT, FONT_HEIGHT_1, FONT_WIDTH, FONT_WIDTH_1};
 use crate::ssd1306_registers::*;
 
 const DEFAULT_ADDRESS: u8 = 0x3C;
@@ -13,7 +16,11 @@ pub struct DisplayDriver<'buffer, I2C> {
     i2c: I2C,
     address: u8,
     buffer: &'buffer mut [u8; BUFFER_SIZE],
+    cursor_x: u16,
+    cursor_y: u16,
 }
+
+impl<'buffer, I2C> DisplayDriver<'buffer, I2C> {}
 
 impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
     pub fn new(mut i2c: I2C, address: Option<u8>, buffer: &'buffer mut [u8; BUFFER_SIZE]) -> Result<Self, Error<I2C::Error>> {
@@ -47,12 +54,14 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
             i2c,
             address,
             buffer,
+            cursor_x: 0,
+            cursor_y: 0,
         })
     }
 
     pub fn start_of_data(&mut self) -> Result<(), Error<I2C::Error>> {
         // self.i2c.write(self.address, &[PAGEADDR, 0, (LCDHEIGHT/2 - 1).try_into().unwrap(), COLUMNADDR, 0, (LCDWIDTH - 1).try_into().unwrap()])?;
-        let last_x_pixel_index: u8 = ((LCDWIDTH - 1) as u8);
+        let last_x_pixel_index: u8 = (LCDWIDTH - 1) as u8;
         let last_y_byte_index: u8 = ((LCDHEIGHT / 8) - 1) as u8;
         self.i2c.write(self.address, &[0x00, COLUMNADDR, 0x00, last_x_pixel_index, PAGEADDR, 0x00, last_y_byte_index])?;
         Ok(())
@@ -85,7 +94,7 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
     }
 
     pub fn clear_display(&mut self) {
-        self.fill_screen(WHITE);
+        self.fill_screen(BLACK);
     }
 
     pub fn invert_display(&mut self, inverted: bool) -> Result<(), Error<I2C::Error>> {
@@ -195,5 +204,54 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         let mut temp = [0];
         self.i2c.write_read(DEFAULT_ADDRESS, &[TEMP_REGISTER], &mut temp)?;
         Ok(temp[0])
+    }
+    pub(crate) fn draw_string(&mut self, text: &str) {
+        for character in text.chars() {
+            // println!("print {}", character);
+            self.draw_char(character);
+        }
+    }
+    pub(crate) fn draw_char(&mut self, character: char) {
+        if character == '\n' {
+            self.cursor_x = 0;
+            self.cursor_y += FONT_HEIGHT_1;
+        } else if character != '\r' {
+            if self.cursor_x + FONT_WIDTH_1 > LCDWIDTH {
+                self.cursor_x = 0;
+                self.cursor_y += FONT_HEIGHT_1;
+            }
+            self.draw_char_at(self.cursor_x, self.cursor_y, character, WHITE);
+            self.cursor_x += FONT_WIDTH_1;
+        }
+    }
+    pub(crate) fn draw_char_at(&mut self, x: u16, y: u16, character: char, color: u8) {
+        // println!("draw_char_at");
+        if (x >= LCDWIDTH)
+            || (y >= LCDHEIGHT)
+        // || (x + FONT_WIDTH) < 0
+        // || (y + FONT_HEIGHT) < 0
+        {
+            return;
+        }
+
+        // println!("{}, {}, {}", character, x, y);
+        if let Some(encoded) = CP437_CONTROL.encode(character) {
+            for i in 0..FONT_WIDTH {
+                // println!("{}, {}", x, i);
+                if let Some(line) = FONT.get(encoded as usize * FONT_WIDTH as usize + i as usize) {
+                    let mut line = *line;
+                    for j in 0..8 {
+                        if line & 1 != 0 {
+                            self.draw_pixel(x + i, y + j, color);
+                        }
+                        line >>= 1;
+                    }
+                }
+            }
+        }
+    }
+    pub(crate) fn set_cursor(&mut self, x: u16, y: u16) {
+        self.cursor_x = x;
+        self.cursor_y = y;
     }
 }

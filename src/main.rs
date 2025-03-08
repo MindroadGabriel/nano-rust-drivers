@@ -12,6 +12,7 @@ mod error;
 mod print;
 mod ssd1306_registers;
 mod ssd1306_error;
+mod ssd1306_font;
 
 use core::cell::RefCell;
 use panic_halt as _;
@@ -43,7 +44,7 @@ fn main() -> ! {
         let mut accelerometer = bmi160::Driver::new(embedded_hal_bus::i2c::RefCellDevice::new(&i2c_ref_cell), None, None)?;
         let mut buffer = [0x00; ssd1306::BUFFER_SIZE];
         let display_result = ssd1306::DisplayDriver::new(embedded_hal_bus::i2c::RefCellDevice::new(&i2c_ref_cell), None, &mut buffer);
-        print::print_type_name(&display_result);
+        // print::print_type_name(&display_result);
         //
         // core::result::Result<
         // hackathon_pong_controller::ssd1306::DisplayDriver<embedded_hal_bus::i2c::refcell::RefCellDevice<avr_hal_generic::i2c::I2c<atmega_hal::Atmega,
@@ -110,10 +111,17 @@ fn main() -> ! {
             }
             display.draw_line(4, 4, 57, 25, WHITE);
             display.display()?;
-            display.dim(true)?;
+            // display.dim(true)?;
             arduino_hal::delay_ms(1000);
-            display.dim(false)?;
+            // display.dim(false)?;
             arduino_hal::delay_ms(1000);
+
+            display.clear_display();
+            display.set_cursor(0, 0);
+            display.draw_string("You're a mean one,\nMister Grinch!");
+            display.draw_string(" Abc");
+            display.display()?;
+            arduino_hal::delay_ms(2000);
         }
     })();
     if let Err(error) = result {
