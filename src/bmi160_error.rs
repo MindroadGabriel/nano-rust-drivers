@@ -11,6 +11,7 @@ impl<I2CError> From<I2CError> for Error<I2CError>
         Self::I2cError(value)
     }
 }
+#[cfg(feature = "string-errors")]
 impl<I2CError> ufmt::uDisplay for Error<I2CError> {
     fn fmt<W>(&self, fmt: &mut Formatter<'_, W>) -> Result<(), <W as uWrite>::Error> where W: uWrite + ?Sized {
         match self {

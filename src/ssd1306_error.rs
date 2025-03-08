@@ -17,6 +17,7 @@ impl<I2CError> From<I2CError> for Error<I2CError>
     }
 }
 
+#[cfg(feature = "string-errors")]
 impl<I2CError> ufmt::uDisplay for Error<I2CError>
     where I2CError: embedded_hal::i2c::Error {
     fn fmt<W>(&self, fmt: &mut Formatter<'_, W>) -> Result<(), <W as uWrite>::Error> where W: uWrite + ?Sized {

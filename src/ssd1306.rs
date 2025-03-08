@@ -3,7 +3,6 @@
 use core::mem::swap;
 use codepage_437::CP437_CONTROL;
 use embedded_hal::i2c::{I2c, Operation};
-use crate::println;
 use crate::ssd1306_error::Error;
 use crate::ssd1306_font::{FONT, FONT_HEIGHT, FONT_HEIGHT_1, FONT_WIDTH, FONT_WIDTH_1};
 use crate::ssd1306_registers::*;
@@ -38,15 +37,12 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
 
         let com_pins = 0x02;
         let contrast = 0x8F;
-        i2c.write(address, &[0x00, SETCOMPINS])?;
-        i2c.write(address, &[0x00, com_pins])?;
-        i2c.write(address, &[0x00, SETCONTRAST])?;
-        i2c.write(address, &[0x00, contrast])?;
-        i2c.write(address, &[0x00, SETPRECHARGE])?;
+        i2c.write(address, &[0x00, SETCOMPINS, com_pins])?;
+        i2c.write(address, &[0x00, SETCONTRAST, contrast])?;
         if vcc_state == EXTERNALVCC {
-            i2c.write(address, &[0x00, 0x22])?;
+            i2c.write(address, &[0x00, SETPRECHARGE, 0x22])?;
         } else {
-            i2c.write(address, &[0x00, 0xF1])?;
+            i2c.write(address, &[0x00, SETPRECHARGE, 0xF1])?;
         }
         i2c.write(address, &[0x00, SETVCOMDETECT, 0x40, DISPLAYALLON_RESUME, NORMALDISPLAY, DEACTIVATE_SCROLL, DISPLAYON])?;
 
@@ -73,10 +69,12 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         // self.i2c.write(self.address, &[0x00, (LCDWIDTH - 1).try_into().unwrap()])?;
 
         // self.i2c.write(self.address, &subset)?;
-        self.i2c.transaction(self.address, &mut [
-            Operation::Write(&mut [0x40]),
-            Operation::Write(self.buffer),
-        ])?;
+        for i in 0..BUFFER_SIZE {
+            self.i2c.transaction(self.address, &mut [
+                Operation::Write(&mut [0x40]),
+                Operation::Write(&[self.buffer[i]]),
+            ])?;
+        }
         Ok(())
     }
 
@@ -236,13 +234,13 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         self.i2c.write_read(DEFAULT_ADDRESS, &[TEMP_REGISTER], &mut temp)?;
         Ok(temp[0])
     }
-    pub(crate) fn draw_string(&mut self, text: &str) {
+    pub fn draw_string(&mut self, text: &str) {
         for character in text.chars() {
             // println!("print {}", character);
             self.draw_char(character);
         }
     }
-    pub(crate) fn draw_char(&mut self, character: char) {
+    pub fn draw_char(&mut self, character: char) {
         if character == '\n' {
             self.cursor_x = 0;
             self.cursor_y += FONT_HEIGHT_1;
@@ -255,10 +253,10 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
             self.cursor_x += FONT_WIDTH_1;
         }
     }
-    pub(crate) fn draw_char_at(&mut self, x: u16, y: u16, character: char, color: u8) {
+    pub fn draw_char_at(&mut self, x: u16, y: u16, character: char, color: u8) {
         // println!("draw_char_at");
-        if (x >= LCDWIDTH)
-            || (y >= LCDHEIGHT)
+        if (x + FONT_WIDTH >= LCDWIDTH)
+            || (y + FONT_HEIGHT >= LCDHEIGHT)
         // || (x + FONT_WIDTH) < 0
         // || (y + FONT_HEIGHT) < 0
         {
@@ -281,7 +279,7 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
             }
         }
     }
-    pub(crate) fn set_cursor(&mut self, x: u16, y: u16) {
+    pub fn set_cursor(&mut self, x: u16, y: u16) {
         self.cursor_x = x;
         self.cursor_y = y;
     }

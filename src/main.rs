@@ -41,7 +41,7 @@ fn main() -> ! {
         let mut button1_last_pressed = button1.is_low();
         let mut button2_last_pressed = button2.is_low();
         let i2c_ref_cell = RefCell::new(i2c);
-        let mut accelerometer = bmi160::Driver::new(embedded_hal_bus::i2c::RefCellDevice::new(&i2c_ref_cell), None, None)?;
+        let mut accelerometer = bmi160::Driver::new(embedded_hal_bus::i2c::RefCellDevice::new(&i2c_ref_cell), None, None, |ms| arduino_hal::delay_ms(ms))?;
         let mut buffer = [0x00; ssd1306::BUFFER_SIZE];
         let display_result = ssd1306::DisplayDriver::new(embedded_hal_bus::i2c::RefCellDevice::new(&i2c_ref_cell), None, &mut buffer);
         // print::print_type_name(&display_result);
@@ -139,6 +139,7 @@ fn main() -> ! {
         }
     })();
     if let Err(error) = result {
+        #[cfg(feature = "string-errors")]
         println!("Error: {}", error);
     }
     loop {}

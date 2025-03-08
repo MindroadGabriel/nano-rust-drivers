@@ -40,7 +40,8 @@ pub struct Vector {
 }
 
 impl<I2C: I2c> Driver<I2C> {
-    pub fn new(mut i2c: I2C, address: Option<u8>, calibration: Option<CalibrationData>) -> Result<Self, Error<I2C::Error>> {
+    pub fn new<F>(mut i2c: I2C, address: Option<u8>, calibration: Option<CalibrationData>, delay_fn: F) -> Result<Self, Error<I2C::Error>>
+    where F: Fn(u16) {
         let address = address.unwrap_or(DEFAULT_ADDRESS);
 
         // Check that we're talking to a chip with the right chip ID
@@ -52,15 +53,15 @@ impl<I2C: I2c> Driver<I2C> {
 
         // Soft reset
         i2c.write(address, &[CMD, 0xB6])?;
-        arduino_hal::delay_ms(100);
+        delay_fn(100);
 
         // Start up accelerometer
         i2c.write(address, &[CMD, 0x11])?;
-        arduino_hal::delay_ms(100);
+        delay_fn(100);
 
         // Start up gyroscope
         i2c.write(address, &[CMD, 0x15])?;
-        arduino_hal::delay_ms(100);
+        delay_fn(100);
 
         // Set up full scale accel range +-16G
         i2c.write(address, &[ACC_RANGE, 0x0C])?;

@@ -181,23 +181,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "723dce4e9f25b6e6c5f35628e144794e5b459216ed7da97b7c4b66cdb3fa82ca"
 
 [[package]]
-name = "hackathon-pong-controller"
-version = "0.1.0"
-dependencies = [
- "arduino-hal",
- "avr-device",
- "codepage-437",
- "embedded-hal 1.0.0",
- "embedded-hal-bus 0.3.0",
- "nb 1.1.0",
- "nostd",
- "panic-halt",
- "postcard",
- "serde",
- "ufmt",
-]
-
-[[package]]
 name = "hash32"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -241,6 +224,23 @@ name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
+name = "nano-rust-drivers"
+version = "0.1.0"
+dependencies = [
+ "arduino-hal",
+ "avr-device",
+ "codepage-437",
+ "embedded-hal 1.0.0",
+ "embedded-hal-bus 0.3.0",
+ "nb 1.1.0",
+ "nostd",
+ "panic-halt",
+ "postcard",
+ "serde",
+ "ufmt",
+]
 
 [[package]]
 name = "nb"
