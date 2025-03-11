@@ -1,4 +1,4 @@
-Hackathon Pong - Controller Software
+Nano rust drivers
 ==============
 
 Rust project for the _Arduino Nano New Bootloader_, generated from template.

@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 name = "nano-rust-drivers"
 test = false
 bench = false
-required-features = ["binary-build"]
+required-features = ["binary"]
 
 [dependencies]
 panic-halt = "0.2.0"
@@ -24,7 +24,7 @@ avr-device = { optional = true, version = "0.7.0" }
 codepage-437 = { default-features = false, git = "https://github.com/MindroadGabriel/codepage-437", rev = "c1b9dc36fa044723307cbcf3bf9ae7e49e6ebf4d" }
 
 [features]
-binary-build = ["avr-device", "arduino-hal", "serde"]
+binary = ["avr-device", "arduino-hal", "serde"]
 string-errors = []
 
 [dependencies.arduino-hal]
