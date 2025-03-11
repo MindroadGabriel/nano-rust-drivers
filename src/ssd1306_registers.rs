@@ -39,4 +39,4 @@ pub const ACTIVATE_SCROLL: u8 = 0x2F;                      ///< Start scroll
 pub const SET_VERTICAL_SCROLL_AREA: u8 = 0xA3;             ///< Set scroll range
 
 pub const LCDWIDTH: u16 = 128;
-pub const LCDHEIGHT: u16 = 32;
+pub const LCDHEIGHT: u16 = 64;

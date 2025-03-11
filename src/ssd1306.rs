@@ -64,17 +64,12 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
     }
 
     pub fn display(&mut self) -> Result<(), Error<I2C::Error>> {
-        self.start_of_data()?;
+        // self.start_of_data()?;
         // self.i2c.write(self.address, &[0x00, PAGEADDR, 0, 0xFF, COLUMNADDR, 0])?;
         // self.i2c.write(self.address, &[0x00, (LCDWIDTH - 1).try_into().unwrap()])?;
 
         // self.i2c.write(self.address, &subset)?;
-        for i in 0..BUFFER_SIZE {
-            self.i2c.transaction(self.address, &mut [
-                Operation::Write(&mut [0x40]),
-                Operation::Write(&[self.buffer[i]]),
-            ])?;
-        }
+        self.display_num(BUFFER_SIZE)?;
         Ok(())
     }
 
@@ -84,10 +79,25 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
         // self.i2c.write(self.address, &[0x00, (LCDWIDTH - 1).try_into().unwrap()])?;
 
         // self.i2c.write(self.address, &subset)?;
-        self.i2c.transaction(self.address, &mut [
-            Operation::Write(&mut [0x40]),
-            Operation::Write(&self.buffer[..num]),
-        ])?;
+        // self.i2c.transaction(self.address, &mut [
+        //     Operation::Write(&mut [0x40]),
+        //     Operation::Write(&self.buffer[..num]),
+        // ])?;
+        let chunk_size = 32;
+        for i in 0..num.div_ceil(chunk_size) {
+            // for i in 0..1 {
+            let first = chunk_size * i;
+            if first < num {
+                let mut last = chunk_size * i + chunk_size - 1;
+                if last > num - 1 {
+                    last = num - 1
+                }
+                self.i2c.transaction(self.address, &mut [
+                    Operation::Write(&mut [0x40]),
+                    Operation::Write(&self.buffer[first..=last]),
+                ])?;
+            }
+        }
         Ok(())
     }
 
