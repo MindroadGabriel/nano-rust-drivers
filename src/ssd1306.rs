@@ -1,7 +1,7 @@
 #![allow(unused_variables, dead_code)]
 
 use core::mem::swap;
-use codepage_437::CP437_CONTROL;
+// use codepage_437::CP437_CONTROL;
 use embedded_hal::i2c::{I2c, Operation};
 use crate::ssd1306_error::Error;
 use crate::ssd1306_font::{FONT, FONT_HEIGHT, FONT_HEIGHT_1, FONT_WIDTH, FONT_WIDTH_1};
@@ -124,7 +124,7 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
     }
 
     pub fn draw_pixel(&mut self, x: u16, y: u16, color: u8) -> Result<(), Error<I2C::Error>> {
-        if x > LCDWIDTH || y > LCDHEIGHT {
+        if x >= LCDWIDTH || y >= LCDHEIGHT {
             return Err(Error::OutsideScreenAccess { x: x as i16, y: y as i16 });
         }
         let byte = 1 << (y % 8);
@@ -250,7 +250,7 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
             self.draw_char(character);
         }
     }
-    pub fn draw_char(&mut self, character: char) {
+    pub fn draw_char(&mut self, character: char) -> Result<(), Error<I2C::Error>> {
         if character == '\n' {
             self.cursor_x = 0;
             self.cursor_y += FONT_HEIGHT_1;
@@ -259,35 +259,45 @@ impl<'buffer, I2C: I2c> DisplayDriver<'buffer, I2C> {
                 self.cursor_x = 0;
                 self.cursor_y += FONT_HEIGHT_1;
             }
-            self.draw_char_at(self.cursor_x, self.cursor_y, character, WHITE);
+            self.draw_char_at(self.cursor_x, self.cursor_y, character, WHITE)?;
             self.cursor_x += FONT_WIDTH_1;
         }
+        Ok(())
     }
-    pub fn draw_char_at(&mut self, x: u16, y: u16, character: char, color: u8) {
+    pub fn draw_char_at(&mut self, x: u16, y: u16, character: char, color: u8) -> Result<(), Error<I2C::Error>> {
         // println!("draw_char_at");
         if (x + FONT_WIDTH >= LCDWIDTH)
             || (y + FONT_HEIGHT >= LCDHEIGHT)
         // || (x + FONT_WIDTH) < 0
         // || (y + FONT_HEIGHT) < 0
         {
-            return;
+            return Err(Error::OutsideScreenAccess {
+                x: 0,
+                y: 0,
+            });
         }
 
         // println!("{}, {}, {}", character, x, y);
-        if let Some(encoded) = CP437_CONTROL.encode(character) {
+        if character.is_ascii() {
+            let encoded = character as u8;
+        // }
+        // if let Some(encoded) = CP437_CONTROL.encode(character) {
             for i in 0..FONT_WIDTH {
                 // println!("{}, {}", x, i);
                 if let Some(line) = FONT.get(encoded as usize * FONT_WIDTH as usize + i as usize) {
                     let mut line = *line;
                     for j in 0..8 {
                         if line & 1 != 0 {
-                            self.draw_pixel(x + i, y + j, color);
+                            self.draw_pixel(x + i, y + j, color)?;
                         }
                         line >>= 1;
                     }
+                } else {
+                    return Err(Error::InvalidChar(character));
                 }
             }
         }
+        Ok(())
     }
     pub fn set_cursor(&mut self, x: u16, y: u16) {
         self.cursor_x = x;

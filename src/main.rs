@@ -88,6 +88,15 @@ fn main() -> ! {
             if button2_state == Pressed {
                 println!("B2");
             }
+            display.set_cursor(0, 0);
+            // display.draw_string("Sequence memory! Try buttons.");
+            display.fill_screen(WHITE);
+            display.display()?;
+            arduino_hal::delay_ms(100);
+            display.clear_display();
+            display.draw_char('a')?;
+            // display.draw_string("Sequence memory! Try buttons.");
+            display.display()?;
 
             println!("Loop");
             led.set_high();

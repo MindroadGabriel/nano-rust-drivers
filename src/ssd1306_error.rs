@@ -8,6 +8,7 @@ pub enum Error<I2CError> {
         x: i16,
         y: i16,
     },
+    InvalidChar(char),
 }
 
 impl<I2CError> From<I2CError> for Error<I2CError>
